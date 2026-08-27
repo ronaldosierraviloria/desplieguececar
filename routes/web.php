@@ -45,6 +45,9 @@ Route::middleware(['auth', 'check.activo'])->group(function () {
     // Perfil
     Route::get('/perfil', [UserController::class, 'perfil'])->name('user.perfil');
     Route::put('/perfil', [UserController::class, 'update'])->name('user.perfil.update');
+
+    // Archivos de trabajos de grado (Acceso universal para usuarios autenticados)
+    Route::get('/trabajo/archivo/{id}', [TrabajoController::class, 'archivo'])->name('trabajo.archivo');
 });
 
 // --- MÓDULO ADMINISTRADOR ---
@@ -173,7 +176,6 @@ Route::middleware(['auth', 'check.activo', 'check.role:Evaluador'])
             return view('evaluador.evaluacion', compact('trabajo', 'evaluacionPrevia', 'miSlot'));
         })->name('evaluador.evaluacion.show');
 
-        Route::get('/trabajo/archivo/{id}', [TrabajoController::class, 'archivo'])->name('trabajo.archivo');
         Route::get('/trabajos/{id}/rubrica', [ControllerEvaluador::class, 'getRubrica']);
         Route::post('/trabajos/{id}/guardar-evaluacion', [ControllerEvaluador::class, 'guardarEvaluacion'])->name('evaluador.guardar-evaluacion');
         Route::post('/trabajos/{id}/guardar-progreso', [ControllerEvaluador::class, 'guardarProgreso'])->name('evaluador.guardar-progreso');

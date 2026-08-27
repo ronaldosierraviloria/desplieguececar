@@ -475,15 +475,39 @@ public function aceptarTerminos(Request $request)
 public function detallesEvaluacion($id)
 {
     $usuario = Auth::user();
-    if (!$usuario->profesor) {
+    if (!$usuario || !$usuario->profesor) {
         return redirect('/')->with('error', 'Tu cuenta no está vinculada correctamente.');
     }
 
-    // Cargar la evaluación independiente (por id_trabajo y id_profesor)
-    $evaluacion = Evaluacion::where('id_trabajo', $id)
-        ->where('id_profesor', $usuario->profesor->id_profesor)
-        ->with(['trabajo.tipo', 'trabajo.estudiante', 'trabajo.directores', 'trabajo.evaluadores.usuario', 'profesor.usuario'])
-        ->firstOrFail();
+    $profesorId = $usuario->profesor->id_profesor;
+
+    // 1. Buscar por ID directo de la evaluación
+    $evaluacion = Evaluacion::with([
+        'trabajo.tipo', 
+        'trabajo.estudiante', 
+        'trabajo.directores', 
+        'trabajo.evaluadores.usuario', 
+        'profesor.usuario'
+    ])->find($id);
+
+    // 2. Si no coincide con un ID de evaluación, buscar por id_trabajo e id_profesor
+    if (!$evaluacion) {
+        $evaluacion = Evaluacion::where('id_trabajo', $id)
+            ->where('id_profesor', $profesorId)
+            ->with(['trabajo.tipo', 'trabajo.estudiante', 'trabajo.directores', 'trabajo.evaluadores.usuario', 'profesor.usuario'])
+            ->first();
+    }
+
+    // 3. Buscar cualquier evaluación asociada a ese trabajo
+    if (!$evaluacion) {
+        $evaluacion = Evaluacion::where('id_trabajo', $id)
+            ->with(['trabajo.tipo', 'trabajo.estudiante', 'trabajo.directores', 'trabajo.evaluadores.usuario', 'profesor.usuario'])
+            ->first();
+    }
+
+    if (!$evaluacion) {
+        return redirect()->route('evaluador.dashboard')->with('error', 'Evaluación no encontrada.');
+    }
 
     return view('evaluador.detallesEvaluacion', compact('usuario', 'evaluacion'));
 }
@@ -491,15 +515,54 @@ public function detallesEvaluacion($id)
 public function rubricaPDF($id)
 {
     $usuario = Auth::user();
-    if (!$usuario->profesor) {
-        abort(403);
+    if (!$usuario || !$usuario->profesor) {
+        abort(403, 'Acceso no autorizado.');
     }
 
-    // Cargar la evaluación independiente
-    $evaluacion = Evaluacion::where('id_trabajo', $id)
-        ->where('id_profesor', $usuario->profesor->id_profesor)
-        ->with(['trabajo.tipo', 'trabajo.estudiante', 'trabajo.directores', 'trabajo.evaluadores.usuario', 'profesor.usuario'])
-        ->firstOrFail();
+    $profesorId = $usuario->profesor->id_profesor;
+
+    // 1. Buscar por ID directo de la evaluación
+    $evaluacion = Evaluacion::with([
+        'trabajo.tipo', 
+        'trabajo.estudiante', 
+        'trabajo.directores', 
+        'trabajo.evaluadores.usuario', 
+        'profesor.usuario'
+    ])->find($id);
+
+    // 2. Buscar por id_trabajo e id_profesor
+    if (!$evaluacion) {
+        $evaluacion = Evaluacion::where('id_trabajo', $id)
+            ->where('id_profesor', $profesorId)
+            ->with(['trabajo.tipo', 'trabajo.estudiante', 'trabajo.directores', 'trabajo.evaluadores.usuario', 'profesor.usuario'])
+            ->first();
+    }
+
+    // 3. Buscar cualquier evaluación registrada para este trabajo
+    if (!$evaluacion) {
+        $evaluacion = Evaluacion::where('id_trabajo', $id)
+            ->with(['trabajo.tipo', 'trabajo.estudiante', 'trabajo.directores', 'trabajo.evaluadores.usuario', 'profesor.usuario'])
+            ->first();
+    }
+
+    // 4. Si aún no existe un registro guardado en BD, construir objeto Evaluacion en memoria a partir del Trabajo
+    if (!$evaluacion) {
+        $trabajo = Trabajo::with(['tipo', 'estudiante', 'directores', 'evaluadores.usuario'])->find($id);
+        if (!$trabajo) {
+            abort(404, 'Trabajo de grado no encontrado.');
+        }
+
+        $evaluacion = new Evaluacion();
+        $evaluacion->id_trabajo = $trabajo->id_trabajo;
+        $evaluacion->id_profesor = $profesorId;
+        $evaluacion->tipo_plantilla = $trabajo->plantilla_rubrica ?? 'propuesta_de_grado';
+        $evaluacion->nota_final = null;
+        $evaluacion->resultado = '';
+        $evaluacion->observaciones_globales = '';
+        $evaluacion->criterios = [];
+        $evaluacion->setRelation('trabajo', $trabajo);
+        $evaluacion->setRelation('profesor', $usuario->profesor);
+    }
 
     return view('evaluador.rubrica_pdf', compact('usuario', 'evaluacion'));
 }

@@ -269,7 +269,37 @@ class AdminController extends Controller
             'trabajo.directores',
             'trabajo.evaluadores.usuario',
             'profesor.usuario'
-        ])->findOrFail($id);
+        ])->find($id);
+
+        if (!$evaluacion) {
+            $evaluacion = Evaluacion::where('id_trabajo', $id)->with([
+                'trabajo.tipo',
+                'trabajo.estudiante',
+                'trabajo.directores',
+                'trabajo.evaluadores.usuario',
+                'profesor.usuario'
+            ])->first();
+        }
+
+        if (!$evaluacion) {
+            $trabajo = Trabajo::with(['tipo', 'estudiante', 'directores', 'evaluadores.usuario'])->find($id);
+            if (!$trabajo) {
+                abort(404, 'Trabajo de grado no encontrado.');
+            }
+
+            $evaluacion = new Evaluacion();
+            $evaluacion->id_trabajo = $trabajo->id_trabajo;
+            $evaluacion->id_profesor = $trabajo->evaluadores->first()->id_profesor ?? null;
+            $evaluacion->tipo_plantilla = $trabajo->plantilla_rubrica ?? 'propuesta_de_grado';
+            $evaluacion->nota_final = null;
+            $evaluacion->resultado = '';
+            $evaluacion->observaciones_globales = '';
+            $evaluacion->criterios = [];
+            $evaluacion->setRelation('trabajo', $trabajo);
+            if ($trabajo->evaluadores->first()) {
+                $evaluacion->setRelation('profesor', $trabajo->evaluadores->first());
+            }
+        }
 
         return view('evaluador.rubrica_pdf', compact('usuario', 'evaluacion'));
     }

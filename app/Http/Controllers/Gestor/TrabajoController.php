@@ -43,17 +43,38 @@ class TrabajoController extends Controller
     {
         $trabajo = \App\Models\Trabajo::findOrFail($id);
 
-        // Convertir la ruta 'storage/pdf/...' a ruta relativa dentro del disco 'public'
-        $relative = preg_replace('#^storage/#', '', $trabajo->archivo_pdf);
-
-        if (!Storage::disk('public')->exists($relative)) {
-            abort(404);
+        if (empty($trabajo->archivo_pdf)) {
+            abort(404, 'El trabajo no tiene un archivo PDF asignado.');
         }
 
-        $path = Storage::disk('public')->path($relative);
+        // Limpiar prefijos comunes como 'storage/', '/storage/', 'public/', '/'
+        $relative = preg_replace('#^/?(storage|public)/?#i', '', $trabajo->archivo_pdf);
+        $relative = ltrim($relative, '/\\');
 
-        if (request()->has('download')) {
-            return response()->download($path, basename($trabajo->archivo_pdf), [
+        $path = null;
+
+        if (Storage::disk('public')->exists($relative)) {
+            $path = Storage::disk('public')->path($relative);
+        } elseif (file_exists(public_path($trabajo->archivo_pdf))) {
+            $path = public_path($trabajo->archivo_pdf);
+        } elseif (file_exists(public_path('storage/' . $relative))) {
+            $path = public_path('storage/' . $relative);
+        } elseif (file_exists(storage_path('app/public/' . $relative))) {
+            $path = storage_path('app/public/' . $relative);
+        } elseif (file_exists(storage_path('app/' . $relative))) {
+            $path = storage_path('app/' . $relative);
+        } elseif (file_exists(base_path($trabajo->archivo_pdf))) {
+            $path = base_path($trabajo->archivo_pdf);
+        }
+
+        if (!$path || !file_exists($path)) {
+            abort(404, 'El archivo PDF no fue encontrado en el servidor.');
+        }
+
+        $filename = basename($trabajo->archivo_pdf);
+
+        if (request()->has('download') || request()->get('disposition') === 'attachment') {
+            return response()->download($path, $filename, [
                 'Content-Type' => 'application/pdf',
             ]);
         }
