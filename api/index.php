@@ -1,7 +1,9 @@
 <?php
 
-// Forward Vercel requests to normal index.php
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 
+// 1. Serve static files directly if requested
 $uri = urldecode(
     parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? ''
 );
@@ -10,7 +12,9 @@ if ($uri !== '/' && file_exists(__DIR__ . '/../public' . $uri)) {
     return false;
 }
 
-// Prepare storage subdirectories in /tmp for Vercel serverless environment
+define('LARAVEL_START', microtime(true));
+
+// 2. Prepare writable /tmp/storage directories for Vercel serverless environment
 $tmpStorage = '/tmp/storage';
 $directories = [
     $tmpStorage . '/framework/views',
@@ -26,7 +30,7 @@ foreach ($directories as $dir) {
     }
 }
 
-// Override compiled storage paths for serverless environment
+// 3. Set environment variables for storage overrides
 putenv('VIEW_COMPILED_PATH=' . $tmpStorage . '/framework/views');
 $_ENV['VIEW_COMPILED_PATH'] = $tmpStorage . '/framework/views';
 
@@ -42,4 +46,15 @@ $_ENV['APP_CONFIG_CACHE'] = $tmpStorage . '/framework/bootstrap/cache/config.php
 putenv('APP_ROUTES_CACHE=' . $tmpStorage . '/framework/bootstrap/cache/routes.php');
 $_ENV['APP_ROUTES_CACHE'] = $tmpStorage . '/framework/bootstrap/cache/routes.php';
 
-require __DIR__ . '/../public/index.php';
+// 4. Register the Composer autoloader
+require __DIR__ . '/../vendor/autoload.php';
+
+// 5. Bootstrap Laravel
+/** @var Application $app */
+$app = require_once __DIR__ . '/../bootstrap/app.php';
+
+// 6. Bind writable /tmp storage path to application
+$app->useStoragePath($tmpStorage);
+
+// 7. Handle Request
+$app->handleRequest(Request::capture());
