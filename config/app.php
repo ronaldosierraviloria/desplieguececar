@@ -123,4 +123,8 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'admin_prefix' => env('ADMIN_ROUTE_PREFIX', 'admin'),
+    'gestor_prefix' => env('GESTOR_ROUTE_PREFIX', 'gestor'),
+    'evaluador_prefix' => env('EVALUADOR_ROUTE_PREFIX', 'evaluador'),
+
 ];

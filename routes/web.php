@@ -49,7 +49,7 @@ Route::middleware(['auth', 'check.activo'])->group(function () {
 
 // --- MÓDULO ADMINISTRADOR ---
 Route::middleware(['auth', 'check.activo', 'check.role:Administrador'])
-    ->prefix(env('ADMIN_ROUTE_PREFIX', 'admin'))
+    ->prefix(config('app.admin_prefix', 'admin'))
     ->group(function () {
         Route::get('/', [AdminController::class, 'index'])->name('admin.dashboard');
         Route::get('/trabajos', [AdminController::class, 'trabajos'])->name('admin.trabajos');
@@ -105,7 +105,7 @@ Route::middleware(['auth', 'check.activo', 'check.role:Administrador'])
 
 // --- MÓDULO GESTOR ---
 Route::middleware(['auth', 'check.activo', 'check.role:Gestor'])
-    ->prefix(env('GESTOR_ROUTE_PREFIX', 'gestor'))
+    ->prefix(config('app.gestor_prefix', 'gestor'))
     ->group(function () {
         Route::get('/', [GestorController::class, 'index'])->name('gestor.dashboard');
         Route::get('/lista-evaluadores', [GestorController::class, 'listaEvaluadores'])->name('gestor.listaEvaluadores');
@@ -126,7 +126,7 @@ Route::middleware(['auth', 'check.activo', 'check.role:Gestor'])
 
 // --- MÓDULO EVALUADOR ---
 Route::middleware(['auth', 'check.activo', 'check.role:Evaluador'])
-    ->prefix(env('EVALUADOR_ROUTE_PREFIX', 'evaluador'))
+    ->prefix(config('app.evaluador_prefix', 'evaluador'))
     ->group(function () {
         Route::get('/', [ControllerEvaluador::class, 'index'])->name('evaluador.dashboard');
         Route::get('/calificados', [ControllerEvaluador::class, 'trabajosCalificados'])->name('evaluador.calificados');
