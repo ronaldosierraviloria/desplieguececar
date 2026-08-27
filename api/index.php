@@ -1,21 +1,14 @@
 <?php
 
-// 1. Enable full error diagnostics for debugging Vercel environment
+// 1. Enable error reporting to capture any runtime errors
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-register_shutdown_function(function () {
-    $error = error_get_last();
-    if ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-        http_response_code(500);
-        echo '<div style="font-family: sans-serif; padding: 20px; background: #fff3f3; color: #900; border: 1px solid #fcc; border-radius: 8px; margin: 20px;">';
-        echo '<h2>PHP Fatal Shutdown Error</h2>';
-        echo '<p><strong>Message:</strong> ' . htmlspecialchars($error['message']) . '</p>';
-        echo '<p><strong>File:</strong> ' . htmlspecialchars($error['file']) . ' (Line ' . $error['line'] . ')</p>';
-        echo '</div>';
-    }
-});
+// Mark Vercel environment flag
+putenv('VERCEL=1');
+$_ENV['VERCEL'] = '1';
+$_SERVER['VERCEL'] = '1';
 
 // 2. Serve static files directly if requested
 $uri = urldecode(
@@ -26,7 +19,7 @@ if ($uri !== '/' && file_exists(__DIR__ . '/../public' . $uri)) {
     return false;
 }
 
-// 3. Prepare writable /tmp/storage directories for Vercel serverless environment
+// 3. Prepare writable /tmp/storage directories for Vercel
 $tmpStorage = '/tmp/storage';
 $directories = [
     $tmpStorage . '/framework/views',
@@ -42,7 +35,7 @@ foreach ($directories as $dir) {
     }
 }
 
-// 4. Override compiled storage paths for serverless environment
+// 4. Override compiled paths for serverless environment
 putenv('VIEW_COMPILED_PATH=' . $tmpStorage . '/framework/views');
 $_ENV['VIEW_COMPILED_PATH'] = $tmpStorage . '/framework/views';
 
@@ -58,5 +51,5 @@ $_ENV['APP_CONFIG_CACHE'] = $tmpStorage . '/framework/bootstrap/cache/config.php
 putenv('APP_ROUTES_CACHE=' . $tmpStorage . '/framework/bootstrap/cache/routes.php');
 $_ENV['APP_ROUTES_CACHE'] = $tmpStorage . '/framework/bootstrap/cache/routes.php';
 
-// 5. Handover to public/index.php
+// 5. Handover to Laravel public/index.php
 require __DIR__ . '/../public/index.php';
