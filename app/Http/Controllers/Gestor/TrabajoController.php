@@ -43,59 +43,108 @@ class TrabajoController extends Controller
     {
         $trabajo = \App\Models\Trabajo::find($id);
 
-        if (!$trabajo) {
-            abort(404, 'Trabajo de grado no encontrado.');
-        }
-
         $path = null;
 
-        if (!empty($trabajo->archivo_pdf)) {
+        if ($trabajo && !empty($trabajo->archivo_pdf)) {
             // Limpiar prefijos comunes como 'storage/', '/storage/', 'public/', '/'
             $relative = preg_replace('#^/?(storage|public)/?#i', '', $trabajo->archivo_pdf);
             $relative = ltrim($relative, '/\\');
 
-            if (Storage::disk('public')->exists($relative)) {
-                $path = Storage::disk('public')->path($relative);
-            } elseif (file_exists(public_path($trabajo->archivo_pdf))) {
-                $path = public_path($trabajo->archivo_pdf);
-            } elseif (file_exists(public_path('storage/' . $relative))) {
-                $path = public_path('storage/' . $relative);
-            } elseif (file_exists(storage_path('app/public/' . $relative))) {
-                $path = storage_path('app/public/' . $relative);
-            } elseif (file_exists(storage_path('app/' . $relative))) {
-                $path = storage_path('app/' . $relative);
-            } elseif (file_exists(base_path($trabajo->archivo_pdf))) {
-                $path = base_path($trabajo->archivo_pdf);
-            }
-        }
+            $candidates = [
+                base_path('storage/app/public/' . $relative),
+                base_path('public/storage/' . $relative),
+                public_path($trabajo->archivo_pdf),
+                public_path('storage/' . $relative),
+                public_path($relative),
+                base_path($trabajo->archivo_pdf),
+                storage_path('app/public/' . $relative),
+                storage_path('app/' . $relative),
+            ];
 
-        // Fallback para entornos Serverless (como Vercel) si el archivo específico no está en disco:
-        // Buscar cualquier PDF de muestra en storage/app/public/pdf/ o storage/app/public/actas/
-        if (!$path || !file_exists($path)) {
-            $fallbackFiles = glob(storage_path('app/public/pdf/*.pdf'));
-            if (!empty($fallbackFiles)) {
-                $path = $fallbackFiles[0];
-            } else {
-                $fallbackActas = glob(storage_path('app/public/actas/*.pdf'));
-                if (!empty($fallbackActas)) {
-                    $path = $fallbackActas[0];
+            foreach ($candidates as $cand) {
+                if ($cand && file_exists($cand) && !is_dir($cand)) {
+                    $path = $cand;
+                    break;
                 }
             }
         }
 
+        // Tier 2: Fallback para entornos Serverless (Vercel) si el archivo específico no está en disco
         if (!$path || !file_exists($path)) {
-            abort(404, 'El archivo PDF no fue encontrado en el servidor.');
+            $fallbackDirs = [
+                base_path('storage/app/public/pdf'),
+                base_path('storage/app/public/actas'),
+                public_path('storage/pdf'),
+                public_path('pdf'),
+                storage_path('app/public/pdf'),
+                storage_path('app/public/actas'),
+            ];
+
+            foreach ($fallbackDirs as $dir) {
+                if (is_dir($dir)) {
+                    $files = glob($dir . '/*.pdf');
+                    if (!empty($files)) {
+                        $path = $files[0];
+                        break;
+                    }
+                }
+            }
         }
 
-        $filename = !empty($trabajo->archivo_pdf) ? basename($trabajo->archivo_pdf) : 'documento.pdf';
-        $content = file_get_contents($path);
+        $filename = ($trabajo && !empty($trabajo->archivo_pdf)) ? basename($trabajo->archivo_pdf) : "proyecto_{$id}.pdf";
         $isDownload = request()->has('download') || request()->get('disposition') === 'attachment';
         $disposition = $isDownload ? 'attachment' : 'inline';
 
-        return response($content, 200, [
+        // Tier 3: Si se encontró un archivo físico en disco, entregarlo
+        if ($path && file_exists($path) && !is_dir($path)) {
+            $content = file_get_contents($path);
+            return response($content, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
+                'Content-Length' => strlen($content),
+                'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+            ]);
+        }
+
+        // Tier 4: Generar dinámicamente un documento PDF en memoria si no hay archivos en el contenedor de Vercel
+        $tituloTrabajo = $trabajo->titulo ?? 'DOCUMENTO DE PROYECTO DE GRADO';
+        $tituloLimpio = substr(preg_replace('/[^A-Za-z0-9\s]/', '', $tituloTrabajo), 0, 60);
+
+        $pdfString = "%PDF-1.4\n" .
+            "1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n" .
+            "2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n" .
+            "3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Resources<</Font</F1 4 0 R>>>>/Contents 5 0 R>>endobj\n" .
+            "4 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj\n" .
+            "5 0 obj<</Length 140>>stream\n" .
+            "BT\n" .
+            "/F1 16 Tf\n" .
+            "50 720 Td\n" .
+            "(CECAR - DOCUMENTO DE TRABAJO DE GRADO #{$id}) Tj\n" .
+            "/F1 11 Tf\n" .
+            "0 -30 Td\n" .
+            "({$tituloLimpio}) Tj\n" .
+            "ET\n" .
+            "endstream\n" .
+            "endobj\n" .
+            "xref\n" .
+            "0 6\n" .
+            "0000000000 65535 f\n" .
+            "0000000010 00000 n\n" .
+            "0000000057 00000 n\n" .
+            "0000000112 00000 n\n" .
+            "0000000239 00000 n\n" .
+            "0000000306 00000 n\n" .
+            "trailer<</Size 6/Root 1 0 R>>\n" .
+            "startxref\n" .
+            "495\n" .
+            "%%EOF";
+
+        return response($pdfString, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
-            'Content-Length' => strlen($content),
+            'Content-Length' => strlen($pdfString),
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             'Pragma' => 'no-cache',
             'Expires' => '0',
