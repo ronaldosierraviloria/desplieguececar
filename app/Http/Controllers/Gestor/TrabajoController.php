@@ -182,7 +182,36 @@ class TrabajoController extends Controller
                 $admin->notify(new NuevoTrabajoSubido($trabajo, $nombreGestor));
             }
 
-             return redirect()->route('gestor.dashboard')->with('success', 'Trabajo y estudiantes guardados correctamente.');
+            // ── Notificar por Correo Electrónico a Estudiantes y Director ──
+            try {
+                $trabajo->load(['estudiante', 'directores', 'tipo']);
+
+                // Correo a cada estudiante si tiene email
+                foreach ($trabajo->estudiante as $est) {
+                    if (!empty($est->correo)) {
+                        Mail::to($est->correo)->send(new \App\Mail\PropuestaSubidaNotificacion(
+                            $trabajo,
+                            $est->nombre . ' ' . $est->apellido,
+                            'Estudiante'
+                        ));
+                    }
+                }
+
+                // Correo al Director y Subdirector
+                foreach ($trabajo->directores as $dir) {
+                    if (!empty($dir->correo_electronico)) {
+                        Mail::to($dir->correo_electronico)->send(new \App\Mail\PropuestaSubidaNotificacion(
+                            $trabajo,
+                            $dir->nombre . ' ' . $dir->apellido,
+                            'Director'
+                        ));
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Error enviando notificaciones por correo de propuesta subida: ' . $e->getMessage());
+            }
+
+             return redirect()->route('gestor.dashboard')->with('success', 'Trabajo y estudiantes guardados correctamente. Se han enviado las notificaciones por correo.');
 
         } catch (\Exception $e) {
             DB::rollBack();
