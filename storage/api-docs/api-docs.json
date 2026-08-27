@@ -1,0 +1,857 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Sistema de Grado API",
+        "description": "API para la gestión de trabajos de grado. Proporciona endpoints para administradores, gestores y evaluadores.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost",
+            "description": "Servidor local"
+        }
+    ],
+    "paths": {
+        "/admin/estudiante/eliminar/{id}": {
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Eliminar estudiante con motivo",
+                "operationId": "8dcb8a9f17dae3839e1bd8f326d44241",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "motivo": {
+                                        "description": "Motivo de la eliminación",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Estudiante eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Motivo requerido"
+                    },
+                    "404": {
+                        "description": "Estudiante no encontrado"
+                    },
+                    "500": {
+                        "description": "Error al eliminar"
+                    }
+                }
+            }
+        },
+        "/admin/trabajo-evaluador/prorrogar": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Prorrogar plazo de revisión",
+                "description": "Prorroga el plazo de revisión para un evaluador de un trabajo específico.",
+                "operationId": "86ed9b84fdb4dd290eb2e52a6a8ab5ad",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "id_trabajo": {
+                                        "type": "integer"
+                                    },
+                                    "id_profesor": {
+                                        "type": "integer"
+                                    },
+                                    "dias": {
+                                        "description": "Días a prorrogar (1-90)",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Plazo prorrogado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "nueva_fecha": {
+                                            "type": "string"
+                                        },
+                                        "dias_restantes": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error al prorrogar"
+                    }
+                }
+            }
+        },
+        "/admin/trabajo/{id}/aprobar": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Aprobar trabajo de grado",
+                "description": "Aprueba oficialmente el trabajo de grado y registra el hito.",
+                "operationId": "6686c74f3825c08cebb9961831b1f9e6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "observacion_estado": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "302": {
+                        "description": "Redirect con mensaje de éxito"
+                    },
+                    "404": {
+                        "description": "Trabajo no encontrado"
+                    }
+                }
+            }
+        },
+        "/admin/trabajo/{id}/retirar": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Retirar o reactivar trabajo de grado",
+                "operationId": "8fcca6390a9cd3a39c50f2b765430770",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirect con mensaje de éxito"
+                    },
+                    "404": {
+                        "description": "Trabajo no encontrado"
+                    }
+                }
+            }
+        },
+        "/admin/trabajo/{id}/eliminar": {
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Eliminar trabajo de grado",
+                "operationId": "182ffc8f5bfe947bb229e8d955bb6cda",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "Redirect con mensaje de éxito"
+                    },
+                    "404": {
+                        "description": "Trabajo no encontrado"
+                    },
+                    "422": {
+                        "description": "El trabajo debe estar retirado primero"
+                    }
+                }
+            }
+        },
+        "/trabajos/{id}/rubrica": {
+            "get": {
+                "tags": [
+                    "Evaluador"
+                ],
+                "summary": "Obtener rúbrica de un trabajo",
+                "operationId": "85b280a8712ba80955c0a7089770c495",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Criterios de la rúbrica",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "properties": {
+                                            "criterio": {
+                                                "type": "string"
+                                            },
+                                            "puntaje_max": {
+                                                "type": "number"
+                                            },
+                                            "calificacion": {
+                                                "type": "number",
+                                                "nullable": true
+                                            },
+                                            "comentario": {
+                                                "type": "string"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Trabajo no encontrado"
+                    }
+                }
+            }
+        },
+        "/trabajos/{id}/guardar-evaluacion": {
+            "post": {
+                "tags": [
+                    "Evaluador"
+                ],
+                "summary": "Guardar evaluación completa de un trabajo",
+                "operationId": "c89bc16206eb64154a4cee3e62bc6dd3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "tipo_plantilla": {
+                                        "type": "string",
+                                        "enum": [
+                                            "propuesta_de_grado",
+                                            "pasantia",
+                                            "trabajo_de_grado"
+                                        ]
+                                    },
+                                    "nota_final": {
+                                        "type": "number",
+                                        "nullable": true
+                                    },
+                                    "resultado": {
+                                        "type": "string"
+                                    },
+                                    "observaciones_globales": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "criterios": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "nullable": true
+                                                },
+                                                "descripcion": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "calificacion": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "comentario": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "valoracion": {
+                                                    "type": "string",
+                                                    "nullable": true,
+                                                    "enum": [
+                                                        "excelente",
+                                                        "aceptable",
+                                                        "deficiente"
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "firma": {
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Evaluación guardada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "nota_final": {
+                                            "type": "number"
+                                        },
+                                        "resultado": {
+                                            "type": "string"
+                                        },
+                                        "evaluacion_completada": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Evaluador no encontrado"
+                    },
+                    "403": {
+                        "description": "Debe aceptar el trabajo primero"
+                    },
+                    "404": {
+                        "description": "Trabajo no encontrado"
+                    }
+                }
+            }
+        },
+        "/trabajos/{id}/guardar-progreso": {
+            "post": {
+                "tags": [
+                    "Evaluador"
+                ],
+                "summary": "Guardar progreso parcial de evaluación",
+                "operationId": "a255f7a9bf854c9ab711d93180d0b8ec",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "tipo_plantilla": {
+                                        "type": "string",
+                                        "enum": [
+                                            "propuesta_de_grado",
+                                            "pasantia",
+                                            "trabajo_de_grado"
+                                        ]
+                                    },
+                                    "nota_final": {
+                                        "type": "number",
+                                        "nullable": true
+                                    },
+                                    "resultado": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "observaciones_globales": {
+                                        "type": "string",
+                                        "nullable": true
+                                    },
+                                    "criterios": {
+                                        "type": "array",
+                                        "items": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "nullable": true
+                                                },
+                                                "descripcion": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "calificacion": {
+                                                    "type": "number",
+                                                    "nullable": true
+                                                },
+                                                "comentario": {
+                                                    "type": "string",
+                                                    "nullable": true
+                                                },
+                                                "valoracion": {
+                                                    "type": "string",
+                                                    "nullable": true,
+                                                    "enum": [
+                                                        "excelente",
+                                                        "aceptable",
+                                                        "deficiente"
+                                                    ]
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Progreso guardado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Evaluador no encontrado"
+                    },
+                    "403": {
+                        "description": "Debe aceptar el trabajo primero"
+                    },
+                    "404": {
+                        "description": "Trabajo no encontrado"
+                    }
+                }
+            }
+        },
+        "/evaluador/aceptar-terminos": {
+            "post": {
+                "tags": [
+                    "Evaluador"
+                ],
+                "summary": "Aceptar términos y condiciones para evaluar un trabajo",
+                "operationId": "e8a6ddd04b1a755dc86ff607186d897f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "trabajo_id": {
+                                        "description": "ID del trabajo",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Términos aceptados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Evaluador no encontrado o ID requerido"
+                    }
+                }
+            }
+        },
+        "/evaluador/aceptar/{id}": {
+            "post": {
+                "tags": [
+                    "Evaluador"
+                ],
+                "summary": "Aceptar trabajo asignado para evaluación",
+                "operationId": "0f39448aa7c80e830d74690d78a4822e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Trabajo aceptado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No autorizado"
+                    },
+                    "404": {
+                        "description": "Asignación no encontrada"
+                    }
+                }
+            }
+        },
+        "/evaluador/rechazar/{id}": {
+            "post": {
+                "tags": [
+                    "Evaluador"
+                ],
+                "summary": "Rechazar trabajo asignado para evaluación",
+                "operationId": "5244fef8a7cf788b8727e40106cae4be",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "motivo": {
+                                        "type": "string",
+                                        "maxLength": 500
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Trabajo rechazado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "No autorizado"
+                    },
+                    "404": {
+                        "description": "Asignación no encontrada"
+                    }
+                }
+            }
+        },
+        "/gestor/trabajo/eliminar/{id}": {
+            "delete": {
+                "tags": [
+                    "Gestor"
+                ],
+                "summary": "Eliminar trabajo de grado (gestor)",
+                "operationId": "9e68704423d0a8f028395fa5fc729dc7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Trabajo eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Trabajo no encontrado"
+                    }
+                }
+            }
+        },
+        "/notificaciones": {
+            "get": {
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Obtener notificaciones del usuario autenticado",
+                "operationId": "085636fd83947c84ce0a36da7a768101",
+                "responses": {
+                    "200": {
+                        "description": "Lista de notificaciones",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "notificaciones": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object"
+                                            }
+                                        },
+                                        "noLeidas": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notificaciones/{id}/leida": {
+            "post": {
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Marcar notificación como leída",
+                "operationId": "5f7e0bff1d85938afc4a9fdbb23bcfa7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "description": "ID de la notificación",
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Notificación marcada como leída",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Notificación no encontrada"
+                    }
+                }
+            }
+        },
+        "/notificaciones/todas-leidas": {
+            "post": {
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Marcar todas las notificaciones como leídas",
+                "operationId": "17a7f33bde6e6d3ab4c38964aee31f75",
+                "responses": {
+                    "200": {
+                        "description": "Todas marcadas como leídas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notificaciones/todas": {
+            "delete": {
+                "tags": [
+                    "Notificaciones"
+                ],
+                "summary": "Eliminar todas las notificaciones del usuario",
+                "operationId": "92baab704ceae1ae8d155ad2d6d9651d",
+                "responses": {
+                    "200": {
+                        "description": "Notificaciones eliminadas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Admin",
+            "description": "Admin"
+        },
+        {
+            "name": "Evaluador",
+            "description": "Evaluador"
+        },
+        {
+            "name": "Gestor",
+            "description": "Gestor"
+        },
+        {
+            "name": "Notificaciones",
+            "description": "Notificaciones"
+        }
+    ]
+}

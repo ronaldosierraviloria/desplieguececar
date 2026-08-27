@@ -1,0 +1,107 @@
+@startuml
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+title Sistema de Gestión de Trabajos de Grado - Diagrama de Componentes
+
+' ════════════════════════════════════════════════════════════════
+' ACTORES
+' ════════════════════════════════════════════════════════════════
+actor "Administrador" as admin
+actor "Gestor" as gestor
+actor "Evaluador" as evaluador
+
+' ════════════════════════════════════════════════════════════════
+' CLIENTE (Navegador)
+' ════════════════════════════════════════════════════════════════
+package "Cliente" {
+  component "Navegador Web\nHTML · CSS (Tailwind) · JavaScript (Alpine.js)" as browser
+}
+
+admin   --> browser
+gestor  --> browser
+evaluador --> browser
+
+' ════════════════════════════════════════════════════════════════
+' APLICACIÓN WEB (LARAVEL 12 · PHP 8.2)
+' ════════════════════════════════════════════════════════════════
+package "Aplicación Web — Laravel 12 (Sistema de Gestión de Trabajos de Grado)" {
+
+  package "Capa de Presentación" as presentacion {
+    component "Vistas Blade\nlayouts: baseAdmin · baseGestor · baseEvaluador" as views
+    component "Assets Web\napp.js · bootstrap.js · notificaciones.js\nsession-timeout.js · tour.js · connectivity.js" as assets
+  }
+
+  package "Capa HTTP" as http {
+    component "Enrutador\nroutes/web.php" as routes
+    component "Middleware\nCheckActivo · CheckRole · EnsureRole" as middleware
+    component "Form Requests\nValidación de entrada" as requests
+    component "AuthController" as c_auth
+    component "Admin\nAdminController · AdminAreaController\nAdminFacultadController\nAdminTipoTrabajoController · UsuarioController" as c_admin
+    component "Gestor\nGestorController · TrabajoController\nAsignarRubricaController" as c_gestor
+    component "Evaluador\nControllerEvaluador · EvaluadorController\nRetroalimentacionController" as c_evaluador
+    component "Soporte\nNotificacionController · UserController\nDocsController (Swagger)" as c_soporte
+  }
+
+  package "Capa de Dominio" as dominio {
+    component "Modelos Eloquent (ORM)\nTrabajo · Estudiante · Profesor · Evaluacion\nUsuario · Gestor · Rubrica · Director · HistorialEstado · ..." as models
+    component "Servicios\nAlertService · BusinessDaysService" as services
+    component "Eventos\nNuevoComentarioPublicado" as events
+  }
+
+  package "Capa de Infraestructura (Salidas)" as salidas {
+    component "Notificaciones (16)\nEvaluadorAsignado · PropuestaEvaluada\nTrabajoAceptado · PlazoExtendido · ..." as notifications
+    component "Correos (Mailables)\nTrabajoSubidoEstudiante" as mails
+    component "Almacenamiento (Storage)\nPDF de trabajos · actas · rúbricas" as storage
+  }
+}
+
+' ─── Flujo del cliente → aplicación ───
+browser --> views : "Renderiza"
+browser --> routes : "Peticiones HTTP"
+views --> routes : "Formularios / enlaces"
+
+' ─── Enrutamiento y seguridad ───
+routes --> middleware : "Filtros de autenticación y rol"
+middleware --> c_auth
+middleware --> c_admin : "rol: Administrador"
+middleware --> c_gestor : "rol: Gestor"
+middleware --> c_evaluador : "rol: Evaluador"
+middleware --> c_soporte
+
+' ─── Controladores → dominio ───
+http --> requests : "Valida"
+http --> models : "Eloquent ORM"
+http --> services : "Lógica de negocio"
+http --> events : "Dispatcher"
+http --> notifications : "envía"
+http --> mails : "envía"
+
+' ─── Dominio interno ───
+services --> models : "consulta/actualiza"
+events --> notifications : "escucha / dispara"
+
+' ════════════════════════════════════════════════════════════════
+' INFRAESTRUCTURA EXTERNA
+' ════════════════════════════════════════════════════════════════
+database "PostgreSQL" as db {
+  component "Esquema del dominio\n24 tablas + 7 enums" as tables
+  component "Tablas del framework\nsessions · cache · notifications" as framework_tables
+}
+
+component "Cola de Trabajos\n(Queue)" as queue
+component "Servidor SMTP" as smtp
+component "Sistema de Archivos\nstorage/app (disco público)" as filesystem
+
+' ─── Conexiones a infraestructura ───
+models --> tables : "persistencia"
+salidas --> storage : "lectura/escritura"
+storage --> filesystem : "archivos PDF"
+notifications --> queue : "encolado diferido"
+mails --> queue : "encolado diferido"
+queue --> smtp : "entrega de correos"
+http --> framework_tables : "sesión · caché"
+
+@enduml

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+        <title>PGTG-001-26-EVALUACIÓN DE INFORME FINAL DE TRABAJO GRADO - FCBIA FO-TG-010.pdf</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0;
+            color: #000;
+        }
+        #contenido-rubrica {
+            width: 750px;
+            background: #ffffff;
+            padding: 25px 30px 20px 30px;
+            box-sizing: border-box;
+            font-size: 11px;
+            color: #000;
+            position: relative;
+        }
+
+        /* CABECERA OFICIAL CECAR */
+        .header-table {
+            width: 100%;
+            border: 2px solid #000000;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        .header-table td {
+            padding: 8px 10px;
+            vertical-align: middle;
+            text-align: center;
+            border: 1px solid #000000;
+        }
+        .col-logo {
+            width: 25%;
+        }
+        .col-title {
+            width: 53%;
+            font-weight: bold;
+            font-size: 12px;
+            line-height: 1.3;
+            text-transform: uppercase;
+        }
+        .col-code {
+            width: 22%;
+            font-weight: bold;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        .logo-img {
+            max-height: 52px;
+            max-width: 150px;
+            object-fit: contain;
+        }
+
+        /* INFORMACIÓN DEL PROYECTO */
+        .info-table {
+            width: 100%;
+            border: 2px solid #000000;
+            border-collapse: collapse;
+            margin-bottom: 16px;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        .info-table td {
+            padding: 7px 10px;
+            border: 1px solid #000000;
+            font-size: 11px;
+            vertical-align: middle;
+        }
+        .info-label {
+            width: 26%;
+            font-weight: bold;
+            color: #000000;
+        }
+        .info-value {
+            font-weight: bold;
+            color: #000000;
+        }
+
+        /* EVALUACIÓN CUANTITATIVA TABLE */
+        .eval-table {
+            width: 100%;
+            border: 2px solid #000000;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+            table-layout: fixed;
+        }
+        .eval-table th, .eval-table td {
+            border: 1px solid #000000;
+            padding: 8px 10px;
+            font-size: 11px;
+            vertical-align: top !important;
+            text-align: left !important;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        .eval-table tr {
+            /* Mantener cada fila íntegra: si no cabe en la página, se empuja completa a la siguiente */
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+        .eval-table th {
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            background: #ffffff;
+        }
+        .eval-desc-header {
+            text-align: center !important;
+            font-size: 11px;
+        }
+        .eval-pct-header {
+            width: 7%;
+            text-align: center !important;
+            font-weight: bold;
+        }
+        .eval-nota-header {
+            width: 9%;
+            text-align: center !important;
+            font-weight: bold;
+        }
+        .crit-text {
+            line-height: 1.3;
+        }
+        .crit-pct {
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .crit-nota {
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        .crit-comentario {
+            text-align: left;
+            font-weight: normal;
+            font-size: 10px;
+            line-height: 1.35;
+        }
+        .eval-summary-row td {
+            font-weight: bold;
+            text-align: center;
+            font-size: 10px;
+            padding: 8px;
+            text-transform: uppercase;
+            background: #f8fafc;
+        }
+
+        /* SECCIÓN DE APROBACIÓN */
+        .aprobacion-box {
+            margin-bottom: 16px;
+            padding: 4px 0;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        .aprobacion-item {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 5px;
+            font-size: 11.5px;
+            font-weight: bold;
+        }
+        .aprobacion-name {
+            width: 320px;
+            white-space: normal;
+        }
+        .aprobacion-line {
+            flex: 1;
+            border-bottom: 1.5px solid #000000;
+            margin: 0 10px;
+            position: relative;
+            height: 14px;
+        }
+        .aprobacion-selected-text {
+            position: absolute;
+            bottom: 1px;
+            left: 10px;
+            font-weight: bold;
+            font-size: 11px;
+            color: #000000;
+        }
+        .aprobacion-range {
+            width: 80px;
+            text-align: right;
+            font-weight: bold;
+        }
+        .check-box-icon {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 1.5px solid #000;
+            margin-right: 6px;
+            vertical-align: middle;
+            text-align: center;
+            line-height: 11px;
+            font-size: 11px;
+        }
+
+        /* COMENTARIOS Y OBSERVACIONES ADICIONALES (ADAPTABLE) */
+        .comments-section {
+            margin-bottom: 20px;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        .comments-header-label {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+            color: #000000;
+        }
+        .comments-border-box {
+            border: 1.5px solid #000000;
+            width: 100%;
+            min-height: 130px;
+            padding: 10px 12px;
+            box-sizing: border-box;
+            font-size: 10.5px;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow: visible;
+        }
+
+        /* SECCIÓN DE FIRMAS */
+        .signatures-section {
+            margin-top: 24px;
+            margin-bottom: 20px;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        .signatures-grid {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+        }
+        .signature-col {
+            flex: 1;
+            text-align: center;
+        }
+        .signature-line-container {
+            height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .signature-image {
+            max-height: 52px;
+            max-width: 180px;
+            object-fit: contain;
+            margin-bottom: 2px;
+        }
+        .signature-line {
+            width: 100%;
+            border-top: 1.5px solid #000000;
+        }
+        .signature-label {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        .signature-name-sub {
+            font-size: 9.5px;
+            font-weight: bold;
+            color: #333333;
+            margin-top: 2px;
+        }
+
+        /* PIE DE PÁGINA OFICIAL CECAR */
+        .official-footer {
+            border-top: 1px solid #666666;
+            padding-top: 6px;
+            margin-top: 25px;
+            text-align: center;
+            font-size: 8px;
+            color: #444444;
+            line-height: 1.35;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+
+        @media print {
+            body { padding: 0; background: #fff; }
+            .no-print { display: none !important; }
+            #contenido-rubrica { width: 100%; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="text-align:center; padding: 15px; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; position: sticky; top: 0; z-index: 50;">
+        <button onclick="generarPDF()" style="padding:10px 24px; background:#000000; color:#ffffff; border:none; border-radius:4px; font-weight:bold; cursor:pointer; font-size:13px; transition: background 0.2s;">
+            Descargar PDF
+        </button>
+    </div>
+
+    <div id="contenido-rubrica">
+        
+        <table class="header-table">
+            <tr>
+                <td class="col-logo">
+                    <img src="http://localhost/images/logocecar.webp" alt="Logo CECAR" class="logo-img" onerror="this.style.display='none'">
+                </td>
+                <td class="col-title">
+                                            EVALUACIÓN DE INFORME<br>FINAL DE TRABAJO GRADO
+                                    </td>
+                <td class="col-code">
+                    FCBIA<br>
+                    FO-TG-010
+                </td>
+            </tr>
+        </table>
+
+        
+        <table class="info-table">
+            <tr>
+                <td class="info-label">Título de la Propuesta:</td>
+                <td class="info-value">Modelo de prediccion del puntaje de las pruebas icfes en los estudiantes de 11 grado</td>
+            </tr>
+            <tr>
+                <td class="info-label">Presentado por:</td>
+                <td class="info-value">
+                                                                        Ronaldo Sierra Vitoria                                                            </td>
+            </tr>
+            <tr>
+                <td class="info-label">Director (es):</td>
+                <td class="info-value">
+                                                                        Ronaldo Viloria,                                                     Carlos Ejemplo                                                            </td>
+            </tr>
+        </table>
+
+        
+                    
+            <table class="eval-table">
+                <thead>
+                    <tr>
+                        <th class="eval-desc-header" style="width: 100%; text-align: left; padding: 7px 10px; background: #f8fafc; font-size: 11px;">
+                            CRITERIOS DE EVALUACIÓN Y ANÁLISIS DETALLADO
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                                                                    <tr style="page-break-inside: avoid; break-inside: avoid;">
+                            <td style="width: 100%; padding: 10px 12px; border: 1.5px solid #000000; background: #ffffff; text-align: left !important; vertical-align: top !important;">
+                                
+                                <div style="font-weight: bold; font-size: 11px; color: #000000; line-height: 1.4; margin-bottom: 6px; text-align: left !important;">
+                                    1. El título. ¿Está el título acorde con las expectativas planteadas en la investigación?
+                                </div>
+                                
+                                
+                                                                                                            <div style="font-size: 10.5px; color: #334155; margin-top: 4px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; text-align: left !important; width: 100%;">Buen título.</div>
+                                                                                                </td>
+                        </tr>
+                                                                    <tr style="page-break-inside: avoid; break-inside: avoid;">
+                            <td style="width: 100%; padding: 10px 12px; border: 1.5px solid #000000; background: #ffffff; text-align: left !important; vertical-align: top !important;">
+                                
+                                <div style="font-weight: bold; font-size: 11px; color: #000000; line-height: 1.4; margin-bottom: 6px; text-align: left !important;">
+                                    2. Introducción (incluye planteamiento del problema y justificación). ¿Estuvo bien definido el problema investigado?, ¿fue clara su justificación desde el punto de vista académico, científico, tecnológico, social o económico?
+                                </div>
+                                
+                                
+                                                                                                            <div style="font-size: 10.5px; color: #334155; margin-top: 4px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; text-align: left !important; width: 100%;">Excelente justificación.</div>
+                                                                                                </td>
+                        </tr>
+                                                                    <tr style="page-break-inside: avoid; break-inside: avoid;">
+                            <td style="width: 100%; padding: 10px 12px; border: 1.5px solid #000000; background: #ffffff; text-align: left !important; vertical-align: top !important;">
+                                
+                                <div style="font-weight: bold; font-size: 11px; color: #000000; line-height: 1.4; margin-bottom: 6px; text-align: left !important;">
+                                    3. Marco referencial. ¿La revisión bibliográfica es apropiada, completa y coherente?, ¿El marco referencial está actualizado y acertado con respecto al problema que se estudió?, ¿Es consistente el uso del formato de citas y referencias bibliográficas?
+                                </div>
+                                
+                                
+                                                                                                            <div style="font-size: 10.5px; color: #334155; margin-top: 4px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; text-align: left !important; width: 100%;">Objetivo general claro.</div>
+                                                                                                </td>
+                        </tr>
+                                                                    <tr style="page-break-inside: avoid; break-inside: avoid;">
+                            <td style="width: 100%; padding: 10px 12px; border: 1.5px solid #000000; background: #ffffff; text-align: left !important; vertical-align: top !important;">
+                                
+                                <div style="font-weight: bold; font-size: 11px; color: #000000; line-height: 1.4; margin-bottom: 6px; text-align: left !important;">
+                                    4. Cumplimiento de objetivos. ¿Se evidencia el cumplimiento de los objetivos en los resultados obtenidos?
+                                </div>
+                                
+                                
+                                                                                                            <div style="font-size: 10.5px; color: #334155; margin-top: 4px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; text-align: left !important; width: 100%;">Ajustar objetivos específicos.</div>
+                                                                                                </td>
+                        </tr>
+                                                                    <tr style="page-break-inside: avoid; break-inside: avoid;">
+                            <td style="width: 100%; padding: 10px 12px; border: 1.5px solid #000000; background: #ffffff; text-align: left !important; vertical-align: top !important;">
+                                
+                                <div style="font-weight: bold; font-size: 11px; color: #000000; line-height: 1.4; margin-bottom: 6px; text-align: left !important;">
+                                    5. Evaluación de la metodología. ¿sigue métodos reconocidos internacionalmente?, ¿está la metodología claramente descrita?, ¿esta relacionada con los objetivos planteados?, ¿está validada y respaldada con referencias bibliográficas?, ¿el tratamiento estadístico de los datos fue claro y adecuado metodológicamente (si aplica)?
+                                </div>
+                                
+                                
+                                                                                                            <div style="font-size: 10.5px; color: #334155; margin-top: 4px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; text-align: left !important; width: 100%;">Marco referencial completo.</div>
+                                                                                                </td>
+                        </tr>
+                                                                    <tr style="page-break-inside: avoid; break-inside: avoid;">
+                            <td style="width: 100%; padding: 10px 12px; border: 1.5px solid #000000; background: #ffffff; text-align: left !important; vertical-align: top !important;">
+                                
+                                <div style="font-weight: bold; font-size: 11px; color: #000000; line-height: 1.4; margin-bottom: 6px; text-align: left !important;">
+                                    6. Novedad y pertinencia de los resultados. ¿Los resultados obtenidos son claros y consistentes con los objetivos del proyecto?
+                                </div>
+                                
+                                
+                                                                                                            <div style="font-size: 10.5px; color: #334155; margin-top: 4px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; text-align: left !important; width: 100%;">Metodología clara.</div>
+                                                                                                </td>
+                        </tr>
+                                                                    <tr style="page-break-inside: avoid; break-inside: avoid;">
+                            <td style="width: 100%; padding: 10px 12px; border: 1.5px solid #000000; background: #ffffff; text-align: left !important; vertical-align: top !important;">
+                                
+                                <div style="font-weight: bold; font-size: 11px; color: #000000; line-height: 1.4; margin-bottom: 6px; text-align: left !important;">
+                                    7. Conclusiones. ¿Las conclusiones están acordes a los resultados obtenidos?
+                                </div>
+                                
+                                
+                                                                                                            <div style="font-size: 10.5px; color: #334155; margin-top: 4px; white-space: pre-wrap; word-wrap: break-word; line-height: 1.45; text-align: left !important; width: 100%;">Actualizar bibliografía.</div>
+                                                                                                </td>
+                        </tr>
+                                    </tbody>
+            </table>
+        
+        
+                <div class="aprobacion-box">
+            <div class="aprobacion-item">
+                <span class="aprobacion-name">
+                    <span class="check-box-icon"></span>
+                    Sustentación después de correcciones sugeridas
+                </span>
+                <div class="aprobacion-line">
+                                    </div>
+                <span class="aprobacion-range"></span>
+            </div>
+
+            <div class="aprobacion-item">
+                <span class="aprobacion-name">
+                    <span class="check-box-icon"></span>
+                    Puede sustentar
+                </span>
+                <div class="aprobacion-line">
+                                    </div>
+                <span class="aprobacion-range"></span>
+            </div>
+
+            <div class="aprobacion-item">
+                <span class="aprobacion-name">
+                    <span class="check-box-icon"></span>
+                    Requiere reestructurar y someter nuevamente
+                </span>
+                <div class="aprobacion-line">
+                                    </div>
+                <span class="aprobacion-range"></span>
+            </div>
+        </div>
+        
+        
+        <div class="comments-section">
+            <div class="comments-header-label">
+                COMENTARIOS Y OBSERVACIONES ADICIONALES (si es necesario por favor emplee una hoja adicional)
+            </div>
+            <div class="comments-border-box">Este es un comentario de prueba para verificar la adaptabilidad del campo de observaciones adicionales.
+Segunda línea de observaciones con recomendaciones para el estudiante.</div>
+        </div>
+
+        
+        <div class="signatures-section">
+            <div class="signatures-grid">
+                
+                <div class="signature-col">
+                    <div class="signature-line-container">
+                                                <div class="signature-line"></div>
+                    </div>
+                    <div class="signature-label">NOMBRE Y FIRMA DE QUIEN REVISA</div>
+                    <div class="signature-name-sub">
+                        Evaluador Prueba2
+                    </div>
+                                                            <div class="signature-email-sub" style="font-size: 9.5px; font-weight: bold; color: #1e293b; margin-top: 3px;">
+                        Correo: <span style="font-weight: normal; color: #334155;">evaluadorprueba2@sistema.com</span>
+                    </div>
+                                    </div>
+
+                
+                <div class="signature-col" style="max-width: 180px;">
+                    <div class="signature-line-container">
+                        <div style="font-weight: bold; font-size: 11px; margin-bottom: 4px;">25/08/2026</div>
+                        <div class="signature-line"></div>
+                    </div>
+                    <div class="signature-label">FECHA</div>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="official-footer">
+            Carretera Troncal de Occidente – Vía Corozal – Sincelejo (Sucre)<br>
+            Teléfonos: 280 66 65 – 280 40 18 – 280 20 32, Ext 122 – 123<br>
+            Celular: (314) 524 88 16 www.cecar.edu.co Nit: 892201263 – 1<br>
+            Personería Jurídica No. 7786 MEN - ICEFES
+        </div>
+    </div>
+
+    <script>
+        function generarPDF() {
+            window.scrollTo(0,0);
+            const element = document.getElementById('contenido-rubrica');
+            const opt = {
+                margin:       [6, 6, 6, 6],
+                filename:     "PGTG-001-26-EVALUACI\u00d3N DE INFORME FINAL DE TRABAJO GRADO - FCBIA FO-TG-010.pdf",
+                image:        { type: 'jpeg', quality: 0.98 },
+                pagebreak:    {
+                    mode:   ['css', 'legacy'],
+                    avoid:  ['.header-table', '.info-table', '.eval-table tr', '.aprobacion-box', '.comments-section', '.signatures-section', '.official-footer']
+                },
+                html2canvas:  {
+                    scale: 2,
+                    scrollY: 0,
+                    useCORS: true,
+                    onclone: function(clonedDoc) {
+                        const el = clonedDoc.getElementById('contenido-rubrica');
+                        if (el) {
+                            el.style.margin = '0 auto';
+                            el.style.position = 'static';
+                        }
+                        const body = clonedDoc.body;
+                        if (body) {
+                            body.style.display = 'block';
+                            body.style.padding = '0';
+                            body.style.background = '#fff';
+                        }
+                    }
+                },
+                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
+

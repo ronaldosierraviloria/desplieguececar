@@ -1,0 +1,280 @@
+// ═══════════════════════════════════════════════════════════════════
+// SISTEMA DE GESTIÓN DE TRABAJOS DE GRADO (CECAR)
+// Diagrama de Base de Datos — Formato dbdiagram.io (DBML)
+// Generado a partir de las migraciones de Laravel
+// ═══════════════════════════════════════════════════════════════════
+
+// ─────────── ENUMS (PostgreSQL) ───────────
+
+Table rol_usuario {
+  Administrador
+  Evaluador
+  Gestor
+}
+
+Table tipo_trabajo_enum { // no referenciado directamente (tipo_trabajo.nombre_tipo es varchar)
+  Investigación
+  Emprendimiento
+  Pasantía
+}
+
+Table estado_trabajo_enum { // no referenciado directamente (trabajo.estado es varchar)
+  Aceptado
+  Aceptado_con_Mejoras
+  Rechazado
+}
+
+Table estado_revision_enum {
+  Pendiente
+  En_revision
+  Finalizado
+}
+
+Table estado_calificacion_enum {
+  Borrador
+  Enviada
+}
+
+Table estado_visualizacion_enum {
+  Visto
+  Leido
+  No_visto
+}
+
+Table tipo_alerta_enum {
+  Recordatorio_5_dias
+  Plazo_vencido
+}
+
+// ─────────── TABLAS ───────────
+
+Table facultad {
+  id_facultad bigint [pk, increment]
+  nombre_facultad varchar(150)
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table area {
+  id_area bigint [pk, increment]
+  nombre_area varchar(100)
+  id_facultad bigint [null, ref: > facultad.id_facultad]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table usuario {
+  id_usuario bigint [pk, increment]
+  nombre varchar(100)
+  apellido varchar(100)
+  correo varchar(150) [unique]
+  password varchar(255)
+  rol rol_usuario
+  activo boolean [default: true]
+  id_facultad bigint [null, ref: > facultad.id_facultad]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table gestor {
+  id_gestor bigint [pk, increment]
+  id_usuario bigint [unique, ref: > usuario.id_usuario]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table profesor {
+  id_profesor bigint [pk, increment]
+  id_usuario bigint [ref: > usuario.id_usuario]
+  id_area bigint [ref: > area.id_area]
+  terminos_aceptados boolean [default: false]
+  datos_aceptados boolean [default: false]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table tipo_trabajo {
+  id_tipo bigint [pk, increment]
+  nombre_tipo varchar(100)
+  activo boolean [default: true]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table trabajo {
+  id_trabajo bigint [pk, increment]
+  codigo_proyecto varchar(30) [unique, null] // PGTG-XXX-YY
+  titulo varchar(200)
+  fecha_subida timestamp [null]
+  estado varchar(50) [null] // subido | en_revision | retroalimentacion_emitida | version_corregida_subida | aprobado | rechazada
+  retirado boolean [default: false]
+  id_tipo bigint [ref: > tipo_trabajo.id_tipo]
+  plantilla_rubrica varchar(50) [null] // propuesta_de_grado | trabajo_de_grado | pasantia
+  archivo_pdf varchar(255) [null]
+  archivo_acta varchar(255) [null]
+  nombre_archivo varchar(255) [null]
+  tipo_archivo varchar(50) [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table estudiante {
+  id_estudiante bigint [pk, increment]
+  nombre varchar(100)
+  apellido varchar(100)
+  correo varchar(100) [null]
+  id_trabajo bigint [null, ref: > trabajo.id_trabajo]
+  id_area bigint [null, ref: > area.id_area]
+  motivo_eliminacion text [null]
+}
+
+Table trabajo_estudiante {
+  id_trabajo bigint [pk, ref: > trabajo.id_trabajo]
+  id_estudiante bigint [pk, ref: > estudiante.id_estudiante]
+}
+
+Table rubrica {
+  id_rubrica bigint [pk, increment]
+  id_tipo bigint [null, ref: > tipo_trabajo.id_tipo]
+  archivo varchar(255) [null]
+  mime_type varchar(100) [null]
+  activo boolean [null] // índice único parcial: 1 activa por id_tipo
+  fecha_creacion timestamp [null]
+}
+
+Table trabajo_rubrica {
+  id_trabajo_rubrica bigint [pk, increment]
+  id_trabajo bigint [ref: > trabajo.id_trabajo]
+  id_rubrica bigint [ref: > rubrica.id_rubrica]
+  fecha_asignacion timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table trabajo_profesor {
+  id_trabajo bigint [pk, ref: > trabajo.id_trabajo]
+  id_profesor bigint [pk, ref: > profesor.id_profesor]
+  fecha_asignacion timestamp [null]
+  fecha_limite_revision timestamp [null]
+  estado_revision estado_revision_enum [null]
+  retroalimentacion_finalizada boolean [default: false]
+  decision_evaluador varchar(20) [null] // aceptado | rechazado
+  motivo_rechazo text [null]
+  terminos_aceptados boolean [default: false]
+  datos_aceptados boolean [default: false]
+}
+
+Table calificacion {
+  id_calificacion bigint [pk, increment]
+  id_rubrica bigint [ref: > rubrica.id_rubrica]
+  id_profesor bigint [ref: > profesor.id_profesor]
+  puntaje_total int [null]
+  observacion_final text [null]
+  comentarios text [null]
+  estado estado_calificacion_enum [null]
+  fecha_calificacion timestamp [null]
+}
+
+Table alerta {
+  id_alerta bigint [pk, increment]
+  id_trabajo bigint [ref: > trabajo.id_trabajo]
+  id_profesor bigint [ref: > profesor.id_profesor]
+  fecha_envio timestamp [null]
+  tipo_alerta tipo_alerta_enum [null]
+  leido boolean [null]
+}
+
+Table seguimiento {
+  id_seguimiento bigint [pk, increment]
+  id_trabajo bigint [ref: > trabajo.id_trabajo]
+  id_admin bigint [ref: > gestor.id_gestor] // nota: columna 'id_admin' apunta a gestor
+  estado_visualizacion estado_visualizacion_enum [null]
+  fecha_revision timestamp [null]
+}
+
+Table sessions {
+  id varchar(255) [pk]
+  user_id bigint [null, index]
+  ip_address varchar(45) [null]
+  user_agent text [null]
+  payload text
+  last_activity int [index]
+}
+
+Table notifications {
+  id uuid [pk]
+  type varchar(255)
+  notifiable_type varchar(255)
+  notifiable_id bigint
+  data text
+  read_at timestamp [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table retroalimentaciones {
+  id bigint [pk, increment]
+  trabajo_grado_id bigint [ref: > trabajo.id_trabajo]
+  user_id bigint [ref: > usuario.id_usuario]
+  comentario text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table historial_estados {
+  id bigint [pk, increment]
+  trabajo_grado_id bigint [ref: > trabajo.id_trabajo]
+  estado varchar(255) // subido | en_revision | evaluado | evaluacion_completada | retroalimentacion_emitida | aprobado ...
+  user_id bigint [ref: > usuario.id_usuario]
+  observacion_estado text [null]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table directors {
+  id_director bigint [pk, increment]
+  nombre varchar(255)
+  apellido varchar(255)
+  correo_electronico varchar(255) [unique]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table director_trabajo {
+  id bigint [pk, increment]
+  id_director bigint [ref: > directors.id_director]
+  id_trabajo bigint [ref: > trabajo.id_trabajo]
+  rol varchar(255) [null] // director | subdirector
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table evaluaciones {
+  id bigint [pk, increment]
+  id_trabajo bigint [ref: > trabajo.id_trabajo]
+  id_profesor bigint [null, ref: > profesor.id_profesor] // nullable: evaluación compartida por trabajo
+  tipo_plantilla varchar(50)
+  nota_final decimal(5,2) [null]
+  resultado varchar(50) [null] // puede_sustentar | no_sustentar | sustentacion_con_correcciones | aceptada | aceptada_con_mejoras | rechazada
+  observaciones_globales text [null]
+  criterios json [null]
+  firma text [null]
+  firma_evaluador_2 text [null]
+  celular varchar(20) [null]
+  celular_evaluador_2 varchar(20) [null]
+  evaluacion_completada boolean [default: false]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table cache {
+  key varchar(255) [pk]
+  value mediumtext
+  expiration int
+}
+
+Table cache_locks {
+  key varchar(255) [pk]
+  owner varchar(255)
+  expiration int
+}
