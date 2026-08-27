@@ -6,6 +6,10 @@
         "build": "vite build",
         "dev": "vite"
     },
+    "allowScripts": {
+        "@parcel/watcher": true,
+        "esbuild": true
+    },
     "devDependencies": {
         "autoprefixer": "^10.4.21",
         "axios": "^1.11.0",
