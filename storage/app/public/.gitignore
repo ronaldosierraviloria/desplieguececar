@@ -1,2 +1,6 @@
 *
 !.gitignore
+!pdf/
+!pdf/*.pdf
+!actas/
+!actas/*.pdf
