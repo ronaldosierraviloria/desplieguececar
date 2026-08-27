@@ -87,17 +87,15 @@ class TrabajoController extends Controller
             abort(404, 'El archivo PDF no fue encontrado en el servidor.');
         }
 
-        $filename = !empty($trabajo->archivo_pdf) ? basename($trabajo->archivo_pdf) : basename($path);
+        $filename = !empty($trabajo->archivo_pdf) ? basename($trabajo->archivo_pdf) : 'documento.pdf';
+        $content = file_get_contents($path);
+        $isDownload = request()->has('download') || request()->get('disposition') === 'attachment';
+        $disposition = $isDownload ? 'attachment' : 'inline';
 
-        if (request()->has('download') || request()->get('disposition') === 'attachment') {
-            return response()->download($path, $filename, [
-                'Content-Type' => 'application/pdf',
-            ]);
-        }
-
-        return response()->file($path, [
+        return response($content, 200, [
             'Content-Type' => 'application/pdf',
-            'X-Frame-Options' => 'SAMEORIGIN',
+            'Content-Disposition' => $disposition . '; filename="' . $filename . '"',
+            'Content-Length' => strlen($content),
             'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
             'Pragma' => 'no-cache',
             'Expires' => '0',
