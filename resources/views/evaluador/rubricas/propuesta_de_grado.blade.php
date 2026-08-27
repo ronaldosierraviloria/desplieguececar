@@ -75,7 +75,6 @@
                         6 => ['desc' => 'La metodología planteada reporta antecedentes claves relacionados con el objeto de estudio y con la estrategia propuesta, permitiendo así el cumplimiento de los objetivos.', 'pct' => 20],
                         7 => ['desc' => 'El tiempo estimado para el desarrollo de las actividades (cronograma), es conforme con el alcance planteado y las referencias bibliográficas son actualizadas y se relacionan con el tema de la investigación.', 'pct' => 5],
                     ];
-                @php
                     $esMismaPlantilla = ($evaluacionPrevia?->tipo_plantilla === 'propuesta_de_grado');
                 @endphp
 
