@@ -362,7 +362,11 @@
                 const self = this;
                 fetch('{{ route("evaluador.aceptar-terminos") }}', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}' 
+                    },
                     body: JSON.stringify({ terminos_aceptados: true, datos_aceptados: true, trabajo_id: trabajoId }),
                 })
                 .then((response) => {

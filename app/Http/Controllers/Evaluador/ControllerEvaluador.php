@@ -599,8 +599,17 @@ public function aceptarTerminos(Request $request)
 {
     try {
         $usuario = Auth::user();
-        if (!$usuario || !$usuario->profesor) {
-            return response()->json(['success' => false, 'message' => 'Evaluador no autenticado o no encontrado.'], 401);
+        if (!$usuario) {
+            return response()->json(['success' => false, 'message' => 'Evaluador no autenticado.'], 401);
+        }
+
+        $profesor = $usuario->profesor;
+        if (!$profesor) {
+            $profesor = Profesor::where('id_usuario', $usuario->id_usuario)->first();
+        }
+
+        if (!$profesor) {
+            return response()->json(['success' => false, 'message' => 'Evaluador no encontrado para este usuario.'], 400);
         }
 
         $trabajoId = $request->input('trabajo_id');
@@ -610,7 +619,7 @@ public function aceptarTerminos(Request $request)
 
         DB::table('trabajo_profesor')
             ->where('id_trabajo', $trabajoId)
-            ->where('id_profesor', $usuario->profesor->id_profesor)
+            ->where('id_profesor', $profesor->id_profesor)
             ->update([
                 'decision_evaluador' => 'aceptado',
                 'terminos_aceptados' => true,
@@ -619,8 +628,12 @@ public function aceptarTerminos(Request $request)
 
         return response()->json(['success' => true]);
     } catch (\Throwable $e) {
-        \Log::error('Error en aceptarTerminos: ' . $e->getMessage());
-        return response()->json(['success' => false, 'message' => 'Error al procesar la aceptación de términos: ' . $e->getMessage()], 500);
+        \Log::error('Error en aceptarTerminos: ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al procesar la aceptación de términos.',
+            'error_detail' => $e->getMessage()
+        ], 200);
     }
 }
 
