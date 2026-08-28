@@ -597,26 +597,31 @@ public function guardarProgreso(Request $request, $id_trabajo)
 )]
 public function aceptarTerminos(Request $request)
 {
-    $usuario = Auth::user();
-    if (!$usuario->profesor) {
-        return response()->json(['success' => false, 'message' => 'Evaluador no encontrado.'], 400);
+    try {
+        $usuario = Auth::user();
+        if (!$usuario || !$usuario->profesor) {
+            return response()->json(['success' => false, 'message' => 'Evaluador no autenticado o no encontrado.'], 401);
+        }
+
+        $trabajoId = $request->input('trabajo_id');
+        if (!$trabajoId) {
+            return response()->json(['success' => false, 'message' => 'ID de trabajo requerido.'], 400);
+        }
+
+        DB::table('trabajo_profesor')
+            ->where('id_trabajo', $trabajoId)
+            ->where('id_profesor', $usuario->profesor->id_profesor)
+            ->update([
+                'decision_evaluador' => 'aceptado',
+                'terminos_aceptados' => true,
+                'datos_aceptados' => true,
+            ]);
+
+        return response()->json(['success' => true]);
+    } catch (\Throwable $e) {
+        \Log::error('Error en aceptarTerminos: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => 'Error al procesar la aceptación de términos: ' . $e->getMessage()], 500);
     }
-
-    $trabajoId = $request->input('trabajo_id');
-    if (!$trabajoId) {
-        return response()->json(['success' => false, 'message' => 'ID de trabajo requerido.'], 400);
-    }
-
-    DB::table('trabajo_profesor')
-        ->where('id_trabajo', $trabajoId)
-        ->where('id_profesor', $usuario->profesor->id_profesor)
-        ->update([
-            'decision_evaluador' => 'aceptado',
-            'terminos_aceptados' => true,
-            'datos_aceptados' => true,
-        ]);
-
-    return response()->json(['success' => true]);
 }
 
 public function detallesEvaluacion($id)
