@@ -15,6 +15,10 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+use App\Services\BusinessDaysService;
+use App\Mail\EvaluadorAsignadoMailable;
+use App\Mail\EstudianteEvaluadoresAsignadosMailable;
 use App\Notifications\EvaluadorAsignado;
 use App\Notifications\PlazoExtendido;
 use App\Notifications\TrabajoAprobado;
@@ -425,7 +429,7 @@ class AdminController extends Controller
             DB::beginTransaction();
 
             $fechaAsignacion = Carbon::now();
-            $fechaLimite = $fechaAsignacion->copy()->addDays(21);
+            $fechaLimite = BusinessDaysService::addBusinessDays($fechaAsignacion, 15);
             $defaultPivotData = [
                 'fecha_asignacion' => $fechaAsignacion,
                 'fecha_limite_revision' => $fechaLimite,
@@ -492,20 +496,49 @@ class AdminController extends Controller
 
             DB::commit();
 
-            $trabajo->load('evaluadores.usuario');
+            $trabajo->load(['evaluadores.usuario', 'estudiante', 'tipo']);
             $idsNuevosEvaluadores = array_map('intval', $nuevosEvaluadores);
 
+            // Notificar por correo y en sistema a evaluadores asignados
             foreach ($trabajo->evaluadores as $evaluador) {
                 $idEvaluador = (int) $evaluador->id_profesor;
 
                 if (in_array($idEvaluador, $idsNuevosEvaluadores, true) && $evaluador->usuario) {
                     $evaluador->usuario->notify(new EvaluadorAsignado($trabajo, $fechaLimite));
+
+                    if (!empty($evaluador->usuario->correo)) {
+                        try {
+                            $nombreEval = trim($evaluador->usuario->nombre . ' ' . $evaluador->usuario->apellido);
+                            Mail::to($evaluador->usuario->correo)->send(new EvaluadorAsignadoMailable(
+                                $trabajo,
+                                $nombreEval,
+                                $fechaLimite,
+                                15
+                            ));
+                        } catch (\Throwable $e) {
+                            \Log::error('Error al enviar correo de asignación a evaluador: ' . $e->getMessage());
+                        }
+                    }
+                }
+            }
+
+            // Notificar por correo a estudiantes
+            foreach ($trabajo->estudiante as $est) {
+                if (!empty($est->correo)) {
+                    try {
+                        Mail::to($est->correo)->send(new EstudianteEvaluadoresAsignadosMailable(
+                            $trabajo,
+                            trim($est->nombre . ' ' . $est->apellido)
+                        ));
+                    } catch (\Throwable $e) {
+                        \Log::error('Error al enviar correo de asignación de evaluadores a estudiante: ' . $e->getMessage());
+                    }
                 }
             }
 
             $mensaje = $teniaEvaluadores
                 ? 'Asignación de evaluadores actualizada correctamente.'
-                : 'Evaluadores asignados correctamente. La fecha límite de revisión es el ' . $fechaLimite->format('d/m/Y') . '.';
+                : 'Evaluadores asignados correctamente. La fecha límite de revisión es el ' . $fechaLimite->format('d/m/Y') . ' (15 Días Hábiles).';
 
             return redirect()->route('admin.detallesTrabajo', $trabajo_id)->with('success', $mensaje);
         } catch (\Exception $e) {

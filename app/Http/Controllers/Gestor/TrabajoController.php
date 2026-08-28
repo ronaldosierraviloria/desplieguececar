@@ -18,6 +18,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\TrabajoSubidoEstudiante;
 use App\Models\Retroalimentacion;
+use App\Services\BusinessDaysService;
+use App\Mail\NuevaVersionEstudianteMailable;
+use App\Mail\NuevaVersionEvaluadorMailable;
+use App\Mail\PropuestaConvertidaTGAdminMailable;
+use App\Mail\TrabajoFinalEvaluadoresMailable;
 use App\Notifications\NuevoTrabajoSubido;
 use App\Notifications\NuevaVersionDisponible;
 use App\Notifications\TrabajoRetirado;
@@ -389,11 +394,12 @@ class TrabajoController extends Controller
             'estado' => 'version_corregida_subida',
         ]);
 
-        $nuevaFechaLimite = \Carbon\Carbon::now()->addWeekdays(15)->toDateString();
+        $nuevaFechaLimiteCarbon = BusinessDaysService::addBusinessDays(\Carbon\Carbon::now(), 15);
+        $nuevaFechaLimite = $nuevaFechaLimiteCarbon->toDateString();
         $notificarA = [];
 
         // Evaluar quién requiere re-revisión según su evaluación anterior
-        $trabajo->load(['evaluaciones', 'evaluadores']);
+        $trabajo->load(['evaluaciones', 'evaluadores', 'estudiante', 'tipo']);
 
         foreach ($trabajo->evaluadores as $evaluador) {
             $eval = $trabajo->evaluaciones->where('id_profesor', $evaluador->id_profesor)->first();
@@ -427,16 +433,40 @@ class TrabajoController extends Controller
             'observacion_estado' => $request->observacion_estado ?? 'Documento corregido subido por el gestor.',
         ]);
 
-        // ── Notificar a evaluadores que requieren re-revisión ──
+        // ── Notificar a evaluadores que requieren re-revisión (por sistema y por correo) ──
         try {
             $trabajo->load('evaluadores.usuario');
             foreach ($trabajo->evaluadores as $evaluador) {
                 if (in_array($evaluador->id_profesor, $notificarA) && $evaluador->usuario) {
                     $evaluador->usuario->notify(new NuevaVersionDisponible($trabajo));
+
+                    if (!empty($evaluador->usuario->correo)) {
+                        $nombreEval = trim($evaluador->usuario->nombre . ' ' . $evaluador->usuario->apellido);
+                        Mail::to($evaluador->usuario->correo)->send(new NuevaVersionEvaluadorMailable(
+                            $trabajo,
+                            $nombreEval,
+                            $nuevaFechaLimiteCarbon,
+                            15
+                        ));
+                    }
                 }
             }
         } catch (\Throwable $e) {
-            \Log::error('Error al notificar evaluadores: ' . $e->getMessage());
+            \Log::error('Error al notificar evaluadores por correo en nueva versión: ' . $e->getMessage());
+        }
+
+        // ── Notificar por correo a Estudiantes ──
+        try {
+            foreach ($trabajo->estudiante as $est) {
+                if (!empty($est->correo)) {
+                    Mail::to($est->correo)->send(new NuevaVersionEstudianteMailable(
+                        $trabajo,
+                        trim($est->nombre . ' ' . $est->apellido)
+                    ));
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Error al notificar estudiantes por correo en nueva versión: ' . $e->getMessage());
         }
 
         // ── Notificar al Admin ──
@@ -600,7 +630,8 @@ class TrabajoController extends Controller
 
             // Resetear estado_revision Y fecha_limite_revision de todos los evaluadores
             // para que el nuevo plazo de 15 días hábiles empiece desde hoy
-            $nuevaFechaLimite = \Carbon\Carbon::now()->addWeekdays(15)->toDateString();
+            $nuevaFechaLimiteCarbon = BusinessDaysService::addBusinessDays(\Carbon\Carbon::now(), 15);
+            $nuevaFechaLimite = $nuevaFechaLimiteCarbon->toDateString();
             DB::table('trabajo_profesor')
                 ->where('id_trabajo', $trabajo->id_trabajo)
                 ->update([
@@ -610,26 +641,43 @@ class TrabajoController extends Controller
 
             DB::commit();
 
-            // Notificar a los evaluadores
+            // Notificar a los evaluadores (sistema y correo con 15 Días Hábiles)
             try {
-                $trabajo->load('evaluadores.usuario');
+                $trabajo->load(['evaluadores.usuario', 'estudiante', 'tipo']);
                 foreach ($trabajo->evaluadores as $evaluador) {
                     if ($evaluador->usuario) {
                         $evaluador->usuario->notify(new InformeFinalSubido($trabajo));
+
+                        if (!empty($evaluador->usuario->correo)) {
+                            $nombreEval = trim($evaluador->usuario->nombre . ' ' . $evaluador->usuario->apellido);
+                            Mail::to($evaluador->usuario->correo)->send(new TrabajoFinalEvaluadoresMailable(
+                                $trabajo,
+                                $nombreEval,
+                                $nuevaFechaLimiteCarbon,
+                                15
+                            ));
+                        }
                     }
                 }
             } catch (\Throwable $e) {
-                \Log::error('Error al notificar evaluadores: ' . $e->getMessage());
+                \Log::error('Error al notificar evaluadores por correo en informe final: ' . $e->getMessage());
             }
 
-            // Notificar a los administradores
+            // Notificar a los administradores (sistema y correo de conversión a Trabajo de Grado)
             try {
                 $admins = Usuario::where('rol', 'Administrador')->where('activo', true)->get();
                 foreach ($admins as $admin) {
                     $admin->notify(new InformeFinalSubido($trabajo));
+
+                    if (!empty($admin->correo)) {
+                        Mail::to($admin->correo)->send(new PropuestaConvertidaTGAdminMailable(
+                            $trabajo,
+                            trim($admin->nombre . ' ' . $admin->apellido)
+                        ));
+                    }
                 }
             } catch (\Throwable $e) {
-                \Log::error('Error al notificar admins: ' . $e->getMessage());
+                \Log::error('Error al notificar admins por correo en informe final: ' . $e->getMessage());
             }
 
             return redirect()->route('gestor.dashboard')

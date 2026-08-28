@@ -9,8 +9,15 @@ use App\Models\Trabajo;
 use App\Models\Evaluacion;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use PhpOffice\PhpWord\IOFactory;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\PropuestaCalificadaEstudianteMailable;
+use App\Mail\PropuestaNuevaVersionRequeridaGestorMailable;
+use App\Mail\ReevaluacionFinalizadaEstudianteMailable;
+use App\Mail\ReevaluacionFinalizadaGestorMailable;
+use App\Mail\PropuestaAprobadaGestorMailable;
+use App\Mail\TrabajoFinalSegundoInformeGestorMailable;
+use App\Mail\TrabajoFinalAprobadoAdminMailable;
+use App\Mail\RubricaFinalPDFEstudianteMailable;
 use App\Notifications\PropuestaEvaluada;
 use App\Notifications\TrabajoRechazado;
 use App\Notifications\TrabajoAceptado;
@@ -314,6 +321,146 @@ class ControllerEvaluador extends Controller
         } catch (\Throwable $e) {
             \Log::error('Error al notificar gestores: ' . $e->getMessage());
         }
+    }
+
+    // ── GESTIÓN DE NOTIFICACIONES POR CORREO SEGÚN EL FLUJO DE EVALUACIÓN ──
+    try {
+        $trabajo->load(['estudiante', 'directores', 'evaluadores.usuario', 'evaluaciones']);
+        $notaPromedio = $trabajo->nota_promedio;
+        $resultadoFinal = $data['resultado'];
+        $obs = $data['observaciones_globales'] ?? '';
+
+        // Renderizar vista de rúbrica para adjuntar como contenido HTML/PDF
+        $pdfHtml = '';
+        try {
+            $pdfHtml = view('evaluador.rubrica_pdf', compact('usuario', 'evaluacion'))->render();
+        } catch (\Throwable $te) {
+            \Log::warning('No se pudo renderizar la rúbrica PDF para correo: ' . $te->getMessage());
+        }
+
+        $resLower = strtolower(trim($resultadoFinal));
+
+        // 1. PROPUESTA DE GRADO
+        if ($data['tipo_plantilla'] === 'propuesta_de_grado') {
+            // Notificar a estudiantes cuando ambos evaluadores han finalizado (o evaluador único)
+            if ($ambosFinalizados || $totalEvaluadores <= 1) {
+                foreach ($trabajo->estudiante as $est) {
+                    if (!empty($est->correo)) {
+                        Mail::to($est->correo)->send(new PropuestaCalificadaEstudianteMailable(
+                            $trabajo,
+                            trim($est->nombre . ' ' . $est->apellido),
+                            $notaPromedio,
+                            $resultadoFinal,
+                            $obs,
+                            route('evaluador.rubrica-pdf', $trabajo->id_trabajo),
+                            $pdfHtml
+                        ));
+                    }
+                }
+
+                // Si requiere un nuevo documento de correcciones
+                if (in_array($resLower, ['aceptada_con_mejoras', 'rechazada', 'requiere_correcciones'])) {
+                    $gestores = Usuario::where('rol', 'Gestor')->where('activo', true)->get();
+                    foreach ($gestores as $gestor) {
+                        if (!empty($gestor->correo)) {
+                            Mail::to($gestor->correo)->send(new PropuestaNuevaVersionRequeridaGestorMailable(
+                                $trabajo,
+                                trim($gestor->nombre . ' ' . $gestor->apellido),
+                                $resultadoFinal
+                            ));
+                        }
+                    }
+                } else {
+                    // Propuesta Aprobada / Óptima -> Notificar a Gestor que estudiantes enviarán Informe Final
+                    $gestores = Usuario::where('rol', 'Gestor')->where('activo', true)->get();
+                    foreach ($gestores as $gestor) {
+                        if (!empty($gestor->correo)) {
+                            Mail::to($gestor->correo)->send(new PropuestaAprobadaGestorMailable(
+                                $trabajo,
+                                trim($gestor->nombre . ' ' . $gestor->apellido)
+                            ));
+                        }
+                    }
+                }
+            }
+
+            // Notificar sobre la finalización de re-evaluación si aplica
+            if ($trabajo->estado === 'version_corregida_subida') {
+                foreach ($trabajo->estudiante as $est) {
+                    if (!empty($est->correo)) {
+                        Mail::to($est->correo)->send(new ReevaluacionFinalizadaEstudianteMailable(
+                            $trabajo,
+                            trim($est->nombre . ' ' . $est->apellido),
+                            $resultadoFinal
+                        ));
+                    }
+                }
+                $gestores = Usuario::where('rol', 'Gestor')->where('activo', true)->get();
+                foreach ($gestores as $gestor) {
+                    if (!empty($gestor->correo)) {
+                        Mail::to($gestor->correo)->send(new ReevaluacionFinalizadaGestorMailable(
+                            $trabajo,
+                            trim($gestor->nombre . ' ' . $gestor->apellido),
+                            $resultadoFinal
+                        ));
+                    }
+                }
+            }
+        } 
+        // 2. INFORME FINAL DE TRABAJO DE GRADO / PASANTÍA
+        else {
+            if ($ambosFinalizados || $totalEvaluadores <= 1) {
+                // Enviar Rúbrica Descargable PDF en Informe Final a Estudiantes
+                foreach ($trabajo->estudiante as $est) {
+                    if (!empty($est->correo)) {
+                        Mail::to($est->correo)->send(new RubricaFinalPDFEstudianteMailable(
+                            $trabajo,
+                            trim($est->nombre . ' ' . $est->apellido),
+                            $notaPromedio ?? $data['nota_final'],
+                            $resultadoFinal,
+                            $obs,
+                            $pdfHtml
+                        ));
+                    }
+                }
+
+                // Si se necesita un segundo informe / corrección en trabajo final
+                if (in_array($resLower, ['aceptada_con_mejoras', 'requiere_segundo_informe', 'requiere_correcciones'])) {
+                    $gestores = Usuario::where('rol', 'Gestor')->where('activo', true)->get();
+                    foreach ($gestores as $gestor) {
+                        if (!empty($gestor->correo)) {
+                            Mail::to($gestor->correo)->send(new TrabajoFinalSegundoInformeGestorMailable(
+                                $trabajo,
+                                trim($gestor->nombre . ' ' . $gestor->apellido),
+                                'Gestor'
+                            ));
+                        }
+                    }
+                    foreach ($trabajo->evaluadores as $evaluador) {
+                        if ($evaluador->usuario && !empty($evaluador->usuario->correo)) {
+                            Mail::to($evaluador->usuario->correo)->send(new TrabajoFinalSegundoInformeGestorMailable(
+                                $trabajo,
+                                trim($evaluador->usuario->nombre . ' ' . $evaluador->usuario->apellido),
+                                'Evaluador'
+                            ));
+                        }
+                    }
+                } else {
+                    // Resultado satisfactorio (Aprobado) -> Notificar al Admin de habilitación espacio Acta de Sustentación
+                    $admins = Usuario::where('rol', 'Administrador')->where('activo', true)->get();
+                    foreach ($admins as $admin) {
+                        if (!empty($admin->correo)) {
+                            Mail::to($admin->correo)->send(new TrabajoFinalAprobadoAdminMailable(
+                                $trabajo,
+                                trim($admin->nombre . ' ' . $admin->apellido)
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+    } catch (\Throwable $e) {
+        \Log::error('Error enviando notificaciones por correo tras evaluación: ' . $e->getMessage());
     }
 
     return response()->json([
