@@ -776,14 +776,22 @@ public function revisarTrabajo($id)
 public function aceptarTrabajo($id)
 {
     $usuario = Auth::user();
-    if (!$usuario->profesor) {
+    if (!$usuario) {
+        return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
+    }
+    $profesor = $usuario->profesor ?? Profesor::where('id_usuario', $usuario->id_usuario)->first();
+    if (!$profesor) {
         return response()->json(['success' => false, 'message' => 'No autorizado.'], 403);
     }
 
     $updated = DB::table('trabajo_profesor')
         ->where('id_trabajo', $id)
-        ->where('id_profesor', $usuario->profesor->id_profesor)
-        ->update(['decision_evaluador' => 'aceptado']);
+        ->where('id_profesor', $profesor->id_profesor)
+        ->update([
+            'decision_evaluador' => 'aceptado',
+            'terminos_aceptados' => true,
+            'datos_aceptados' => true,
+        ]);
 
     if (!$updated) {
         return response()->json(['success' => false, 'message' => 'No se encontró la asignación.'], 404);

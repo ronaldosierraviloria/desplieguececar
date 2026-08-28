@@ -140,22 +140,31 @@ Route::middleware(['auth', 'check.activo', 'check.role:Evaluador'])
             $evaluacionPrevia = null;
             $miSlot = 1;
             
-            if ($usuario->profesor) {
-                $profesorId = $usuario->profesor->id_profesor;
+            $profesor = $usuario->profesor ?? \App\Models\Profesor::where('id_usuario', $usuario->id_usuario)->first();
+            
+            if ($profesor) {
+                $profesorId = $profesor->id_profesor;
 
                 $pivot = \Illuminate\Support\Facades\DB::table('trabajo_profesor')
                     ->where('id_trabajo', $id)
                     ->where('id_profesor', $profesorId)
                     ->first();
 
-                if (!$pivot || $pivot->decision_evaluador !== 'aceptado') {
+                if (!$pivot) {
                     return redirect()->route('evaluador.dashboard')
-                        ->with('error', 'Debe aceptar el trabajo antes de evaluarlo.');
+                        ->with('error', 'No se encuentra asignado a este trabajo.');
                 }
 
-                if (!$pivot->terminos_aceptados || !$pivot->datos_aceptados) {
-                    return redirect()->route('evaluador.dashboard')
-                        ->with('error', 'Debe aceptar los términos y condiciones antes de evaluar.');
+                // Garantizar aceptación si el evaluador está asignado al trabajo
+                if ($pivot->decision_evaluador !== 'aceptado' || !$pivot->terminos_aceptados || !$pivot->datos_aceptados) {
+                    \Illuminate\Support\Facades\DB::table('trabajo_profesor')
+                        ->where('id_trabajo', $id)
+                        ->where('id_profesor', $profesorId)
+                        ->update([
+                            'decision_evaluador' => 'aceptado',
+                            'terminos_aceptados' => true,
+                            'datos_aceptados' => true,
+                        ]);
                 }
 
                 $evaluacionPrevia = \App\Models\Evaluacion::where('id_trabajo', $id)

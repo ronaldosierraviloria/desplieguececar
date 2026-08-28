@@ -174,7 +174,7 @@
                             </a>
                         
                             @php
-                                $aceptoTerminos = $trabajo->pivot->terminos_aceptados && $trabajo->pivot->datos_aceptados;
+                                $aceptoTerminos = ($trabajo->pivot->decision_evaluador === 'aceptado') && $trabajo->pivot->terminos_aceptados && $trabajo->pivot->datos_aceptados;
                             @endphp
                             <button @click="iniciarEvaluacion({{ $trabajo->id_trabajo }}, '{{ addslashes($trabajo->titulo) }}', '{{ asset($trabajo->archivo_pdf ?? '') }}', {{ $aceptoTerminos ? 'true' : 'false' }})"
                                 class="inline-flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold text-[#07321e] bg-[#c2d500]/15 border border-[#c2d500]/30 rounded-md hover:bg-[#c2d500]/30 transition-all">
